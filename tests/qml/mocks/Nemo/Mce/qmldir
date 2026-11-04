@@ -1,0 +1,2 @@
+module Nemo.Mce
+MceDisplay 1.0 MceDisplay.qml

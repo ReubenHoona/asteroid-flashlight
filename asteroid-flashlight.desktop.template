@@ -2,6 +2,6 @@
 Type=Application
 Categories=Applications;
 Exec=asteroid-flashlight
-Icon=ios-bulb-outline
-X-Asteroid-Center-Color=#00A698
-X-Asteroid-Outer-Color=#000C07
+Icon=gm-flashlight-on
+X-Asteroid-Center-Color=#FCF7EB
+X-Asteroid-Outer-Color=#3C3A33

@@ -1,0 +1,2 @@
+module org.asteroid.settings
+DisplaySettings 1.0 DisplaySettings.qml
