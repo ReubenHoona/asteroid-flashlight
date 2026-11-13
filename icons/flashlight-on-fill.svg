@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Material Symbols "flashlight_on", Fill 1, weight 400, 24 px (Google, Apache
+     License 2.0): the glyph of the stock Wear OS Flashlight on screen
+     (gm_flashlight_on_24, 24 dp). The fill colour is irrelevant: the Icon
+     item tints the shape -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 960" width="24" height="24">
+  <path fill="#ffffff" d="M240,200L240,160Q240,127 263.5,103.5Q287,80 320,80L640,80Q673,80 696.5,103.5Q720,127 720,160L720,200L240,200ZM480,620Q505,620 522.5,602.5Q540,585 540,560Q540,535 522.5,517.5Q505,500 480,500Q455,500 437.5,517.5Q420,535 420,560Q420,585 437.5,602.5Q455,620 480,620ZM320,800L320,440L253,340Q246,330 243,319Q240,308 240,296L240,280L720,280L720,296Q720,308 717,319Q714,330 707,340L640,440L640,800Q640,833 616.5,856.5Q593,880 560,880L400,880Q367,880 343.5,856.5Q320,833 320,800Z"/>
+</svg>

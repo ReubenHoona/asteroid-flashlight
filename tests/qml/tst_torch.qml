@@ -118,8 +118,11 @@ Item {
             var t = torch()
             compare(t.screen, "white")
             compare(colorOf("light"), "#ffffff")
-            compare(find(t, "icon").name, "gm-flashlight-on")
-            compare(String(find(t, "icon").color), "#bdbdbd")
+            // apps-misc-01: filled Material Symbols glyph, 24 dp, black on white
+            compare(find(t, "icon").name, "flashlight-on-fill")
+            compare(find(t, "icon").width, 48)
+            compare(find(t, "icon").height, 48)
+            compare(String(find(t, "icon").color), "#000000")
             // the user's 60 % and adaptive brightness kept, the level set, adaptive off
             compare(Backend.brightness, 100)
             compare(Backend.als, false)
@@ -134,7 +137,7 @@ Item {
             tap()
             compare(t.screen, "red")
             compare(colorOf("light"), "#ff0000")
-            compare(String(find(t, "icon").color), "#cc0000")
+            compare(String(find(t, "icon").color), "#000000")
             compare(Backend.brightness, 100)
             verify(Backend.blankingPrevented)
             tryCompare(t, "controlShown", false, 3000)
@@ -143,8 +146,10 @@ Item {
             tap()
             compare(t.screen, "off")
             compare(colorOf("light"), "#000000")
-            compare(find(t, "icon").name, "gm-flashlight-off")
-            compare(String(find(t, "icon").color), "#bdbdbd")
+            compare(find(t, "icon").name, "flashlight-off-fill")
+            compare(find(t, "icon").width, 48)
+            // on-surface-variant, night (#cecdd4)
+            compare(String(find(t, "icon").color), "#cecdd4")
             // the user's values back, nothing held
             compare(Backend.brightness, 60)
             compare(Backend.als, true)
@@ -246,9 +251,14 @@ Item {
             compare(t.screen, "off")
             compare(Backend.brightness, 60)
             compare(Backend.als, true)
+            // apps-misc-03: the display coming on again is stock's onResume:
+            // the light is white again, the brightness held, the timer running
             Backend.displayState = 2
             wait(50)
-            compare(t.screen, "off")
+            compare(t.screen, "white")
+            compare(Backend.brightness, 100)
+            compare(Backend.als, false)
+            verify(Backend.blankingPrevented)
         }
 
         function test_06_a_mode_holding_the_brightness() {
@@ -349,6 +359,225 @@ Item {
             wait(50)
             compare(Backend.brightness, 100)
             compare(Backend.confGet(savedKey), 60)
+        }
+
+        // apps-misc-03: onResume -> turnWhite after a pause, whatever the state was
+        function test_11_resume_is_white() {
+            var t = torch()
+            tap()
+            compare(t.screen, "red")
+            // the display off and on: red does not come back, white does
+            Backend.displayState = 0
+            wait(50)
+            compare(t.screen, "off")
+            Backend.displayState = 1       // off to dim: the activity resumes
+            wait(50)
+            compare(t.screen, "white")
+            Backend.displayState = 2       // dim to on: no second resume
+            tap()
+            compare(t.screen, "red")
+            wait(50)
+            compare(t.screen, "red")
+            // the black off screen of a tap, then the display off and on
+            tap()
+            compare(t.screen, "off")
+            Backend.displayState = 0
+            wait(50)
+            Backend.displayState = 2
+            wait(50)
+            compare(t.screen, "white")
+            compare(Backend.brightness, 100)
+        }
+
+        function test_12_window_back_in_front_is_white() {
+            var t = torch()
+            // the app goes behind the home screen: off after the debounce
+            t.windowActive = false
+            tryCompare(t, "screen", "off", 2000)
+            compare(Backend.brightness, 60)
+            verify(!Backend.blankingPrevented)
+            // and comes back to the front: white, timer and hold again
+            t.windowActive = true
+            compare(t.screen, "white")
+            compare(Backend.brightness, 100)
+            compare(Backend.als, false)
+            verify(Backend.blankingPrevented)
+            // the timer runs again from the resume
+            t.timeoutMs = 400
+            tryCompare(t, "screen", "off", 3000)
+            // a flicker shorter than the debounce is no pause: red stays red
+            t.timeoutMs = 120000
+            tap()
+            compare(t.screen, "white")
+            tap()
+            compare(t.screen, "red")
+            t.windowActive = false
+            wait(100)
+            t.windowActive = true
+            wait(400)
+            compare(t.screen, "red")
+        }
+
+        function test_13_resume_waits_for_the_front_and_the_display() {
+            var t = torch()
+            Backend.displayState = 0
+            wait(50)
+            t.windowActive = false
+            wait(50)
+            // the display comes on, the app is still behind: nothing to show
+            Backend.displayState = 2
+            wait(50)
+            compare(t.screen, "off")
+            verify(!Backend.blankingPrevented)
+            t.windowActive = true
+            compare(t.screen, "white")
+            verify(Backend.blankingPrevented)
+            // the window in front while the display is off: not white yet
+            Backend.displayState = 0
+            wait(50)
+            compare(t.screen, "off")
+            t.windowActive = false
+            wait(400)
+            t.windowActive = true
+            compare(t.screen, "off")
+            Backend.displayState = 2
+            wait(50)
+            compare(t.screen, "white")
+        }
+
+        // the ink of a rendered image: the box of the pixels isInk accepts
+        // within [x0,x1] x [y0,y1]
+        function inkBox(img, x0, y0, x1, y1, isInk) {
+            var b = { "l": 1e9, "t": 1e9, "r": -1, "b": -1 }
+            for (var y = y0; y <= y1; y++)
+                for (var x = x0; x <= x1; x++)
+                    if (isInk(img.pixel(x, y))) {
+                        b.l = Math.min(b.l, x); b.r = Math.max(b.r, x)
+                        b.t = Math.min(b.t, y); b.b = Math.max(b.b, y)
+                    }
+            return b
+        }
+        function dark(c) { return c.r < 0.35 && c.g < 0.35 && c.b < 0.35 && c.a > 0.5 }
+        function light(c) { return c.r > 0.5 && c.g > 0.5 && c.b > 0.5 && c.a > 0.5 }
+        function near(c, hex, tol) {
+            var e = Qt.color(hex)
+            return Math.abs(c.r - e.r) <= tol && Math.abs(c.g - e.g) <= tol && Math.abs(c.b - e.b) <= tol
+        }
+
+        // apps-misc-01: the glyph on screen is the 24 dp (48 px) Material Symbols
+        // flashlight, centred. Its ink in the 960 viewport is x 240..720 and
+        // y 80..880: 12..36 and 4..44 px of 48
+        function test_14_glyph_on_screen() {
+            var t = torch()
+            tryCompare(t, "controlShown", false, 3000)
+            wait(300)
+            var img = grabImage(screen)
+            // the white light: black ink (the vignette is far from the middle)
+            var b = inkBox(img, 140, 140, 244, 244, dark)
+            verify(Math.abs(b.l - (168 + 12)) <= 1, "left " + b.l)
+            verify(Math.abs(b.r - (168 + 36)) <= 1, "right " + b.r)
+            verify(Math.abs(b.t - (168 + 4)) <= 1, "top " + b.t)
+            verify(Math.abs(b.b - (168 + 44)) <= 1, "bottom " + b.b)
+            // a pixel of the body is black, the light round the glyph is white
+            verify(near(img.pixel(188, 202), "#000000", 0.1), "body " + img.pixel(188, 202))
+            verify(near(img.pixel(150, 192), "#ffffff", 0.05), "light " + img.pixel(150, 192))
+            shot("torch-06-white-black-glyph")
+            // red: the same black glyph on red
+            tap()
+            tryCompare(t, "controlShown", false, 3000)
+            wait(300)
+            img = grabImage(screen)
+            compare(colorOf("light"), "#ff0000")
+            verify(near(img.pixel(188, 202), "#000000", 0.1), "red body " + img.pixel(188, 202))
+            verify(near(img.pixel(150, 192), "#ff0000", 0.05), "red light " + img.pixel(150, 192))
+            shot("torch-06-red-black-glyph")
+            // off: the slashed glyph in #cecdd4 on black
+            tap()
+            wait(300)
+            img = grabImage(screen)
+            var o = inkBox(img, 140, 140, 244, 244, light)
+            // ink x 73..831 -> 3.65..41.6 px, y 129..887 -> 6.45..44.4 px of 48
+            verify(Math.abs(o.l - (168 + 3.65)) <= 2.5, "off left " + o.l)
+            verify(Math.abs(o.r - (168 + 41.6)) <= 2.5, "off right " + o.r)
+            verify(Math.abs(o.t - (168 + 6.45)) <= 2.5, "off top " + o.t)
+            verify(Math.abs(o.b - (168 + 44.4)) <= 2.5, "off bottom " + o.b)
+            var found = false
+            for (var y = 170; y < 215 && !found; y++)
+                for (var x = 170; x < 215 && !found; x++)
+                    if (near(img.pixel(x, y), "#cecdd4", 0.03))
+                        found = true
+            verify(found, "no #cecdd4 pixel in the off glyph")
+            shot("torch-04b-off-glyph")
+        }
+
+        // apps-misc-02: the launcher icon drawn at 3 px per dp: the torch box
+        // (stock: alpha box 117,84 to 206,239 of 324 px, 30 x 52 dp) and its colours
+        Component {
+            id: iconCase
+            Image {
+                objectName: "im"
+                width: 324
+                height: 324
+                sourceSize: Qt.size(324, 324)
+                source: Qt.resolvedUrl("../../icons/asteroid-flashlight.svg")
+            }
+        }
+        function test_15_launcher_icon() {
+            var im = createTemporaryObject(iconCase, root)
+            tryCompare(im, "status", Image.Ready)
+            wait(200)
+            var gi = grabImage(im)
+            gi.save(shots + "/launcher-icon-3x.png")
+            // ink: neither the white disc nor the transparent corners
+            function ink(c) { return c.a > 0.5 && (c.r < 0.93 || c.g < 0.93 || c.b < 0.97) }
+            // (the torch lies well inside the disc, whose antialiased edge is no ink)
+            var b = inkBox(gi, 90, 60, 234, 264, ink)
+            compare(b.l, 117)
+            compare(b.r, 206)
+            verify(Math.abs(b.t - 84) <= 1, "top " + b.t)
+            verify(Math.abs(b.b - 239) <= 1, "bottom " + b.b)
+            // the torch is 30 x 52 dp
+            compare(Math.round((b.r - b.l + 1) / 3), 30)
+            compare(Math.round((b.b - b.t + 1) / 3), 52)
+            // centred across
+            verify(Math.abs((b.l + b.r) / 2 - 161.5) <= 1)
+            // the white background, the circle's corners empty
+            verify(near(gi.pixel(60, 162), "#ffffff", 0.01), "disc")
+            verify(!near(gi.pixel(2, 2), "#ffffff", 0.2), "outside the circle is not white: " + gi.pixel(2, 2))
+            // the colours: body, switch, highlight, the head lightening downwards
+            verify(near(gi.pixel(162, 215), "#336ef3", 0.02), "body " + gi.pixel(162, 215))
+            verify(near(gi.pixel(162, 174), "#2c3796", 0.02), "switch " + gi.pixel(162, 174))
+            verify(near(gi.pixel(162, 93), "#def0f9", 0.02), "highlight " + gi.pixel(162, 93))
+            var h1 = gi.pixel(162, 100), h2 = gi.pixel(162, 128)
+            verify(h1.b > 0.95 && h1.g > 0.68 && h1.r > 0.40 && h1.r < 0.75, "head top " + h1)
+            verify(h2.r > h1.r, "the head lightens downwards")
+            verify(h2.r <= Qt.color("#add7fe").r + 0.03, "head bottom " + h2)
+        }
+
+        // apps-misc-02: the launcher entry, and the install rules
+        function readFile(rel) {
+            var x = new XMLHttpRequest()
+            x.open("GET", Qt.resolvedUrl(rel), false)
+            x.send()
+            return x.responseText
+        }
+        function test_16_desktop_entry_and_install() {
+            var d = readFile("../../asteroid-flashlight.desktop.template")
+            verify(d.indexOf("Icon=asteroid-flashlight\n") >= 0)
+            verify(d.indexOf("X-Asteroid-Center-Color=#FFFFFF\n") >= 0)
+            verify(d.indexOf("X-Asteroid-Outer-Color=#FFFFFF\n") >= 0)
+            verify(d.indexOf("FCF7EB") < 0 && d.indexOf("3C3A33") < 0, "the TWD9 colours are gone")
+            var c = readFile("../../CMakeLists.txt")
+            verify(c.indexOf("icons/flashlight-on-fill.svg") >= 0)
+            verify(c.indexOf("icons/flashlight-off-fill.svg") >= 0)
+            verify(c.indexOf("icons/asteroid-flashlight.svg") >= 0)
+            verify(c.indexOf("icons/asteroid") >= 0)
+            // the glyph files: Fill 1 in the 960 viewport (stock gm_flashlight_*_24)
+            var on = readFile("../../icons/flashlight-on-fill.svg")
+            verify(on.indexOf('viewBox="0 0 960 960"') >= 0)
+            verify(on.indexOf("M240,200L240,160Q240,127") >= 0)
+            var off = readFile("../../icons/flashlight-off-fill.svg")
+            verify(off.indexOf("M320,800L320,432L84,196") >= 0)
         }
     }
 }

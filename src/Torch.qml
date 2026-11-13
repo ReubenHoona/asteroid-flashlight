@@ -11,10 +11,13 @@
  * and FLAG_KEEP_SCREEN_ON); the user's brightness and adaptive brightness are
  * back when it goes off, and it goes off by itself after 2 minutes
  * (TimeoutController) or when the display is turned off or the app leaves the
- * front (onPause -> turnOff). The light fades to black at the edge (bg_white,
- * bg_red: a radial gradient from 87.48 % of the radius) with the Material
- * flashlight icon, 32 of 192 dp, in grey 400 (#bdbdbd) on white and in #cc0000
- * on red; off is black with the grey "flashlight off" icon (UiImpl).
+ * front (onPause -> turnOff); coming back (onResume) it is white again
+ * (FlashlightActivity.onResume -> ControllerImpl.turnWhite). The light fades
+ * to black at the edge (bg_white, bg_red: a radial gradient from 87.48 % of
+ * the radius) with the Material Symbols filled flashlight icon, 24 dp, black
+ * on white and on red; off is black with the "flashlight off" icon in
+ * on-surface-variant (UiImpl.java:39-57; CP3A colors.xml white_screen_icon,
+ * red_screen_icon, black_screen_icon).
  *
  * Beyond stock, as asked: the brightness of the light is adjustable while it
  * is on, by the crown (10 % per detent, 10 to 100 %, a haptic tick, a bump at
@@ -84,19 +87,47 @@ Item {
     // the display going off, the app leaving the front (the right swipe
     // puts it behind the home screen): stock's onPause turns the light off
     MceDisplay {
-        onStateChanged: if (state === MceDisplay.DisplayOff) torch.turnOff()
+        onStateChanged: {
+            if (state === MceDisplay.DisplayOff) {
+                torch.displayOn = false
+                torch.pause()
+            } else if (!torch.displayOn) {
+                torch.displayOn = true
+                torch.resume()
+            }
+        }
     }
-    readonly property bool windowActive: Window.active
+    // (a plain property: the tests stand in for the compositor)
+    property bool windowActive: Window.active
+    // the display is on (dimmed counts: stock's activity is not paused by the dim)
+    property bool displayOn: true
+    // paused: the light was put off by onPause (display off, app behind)
+    // and onResume owes it its white
+    property bool paused: false
     onWindowActiveChanged: {
-        if (windowActive)
+        if (windowActive) {
             inactive.stop()
-        else
+            resume()
+        } else {
             inactive.start()
+        }
     }
     Timer {
         id: inactive
         interval: 300
-        onTriggered: if (!torch.windowActive) torch.turnOff()
+        onTriggered: if (!torch.windowActive) torch.pause()
+    }
+    // stock onPause / onStop: off
+    function pause() { paused = true; turnOff() }
+    // stock onResume: the light comes back white, whatever it was before
+    // (a red light, the black off screen); the 120 s timer and the brightness
+    // hold start again with it. Only once the display is on and the window
+    // is in front, and only after a pause
+    function resume() {
+        if (!paused || !displayOn || !windowActive)
+            return
+        paused = false
+        turnWhite()
     }
 
     Timer {
@@ -279,17 +310,21 @@ Item {
         onClicked: torch.toggle()
     }
 
-    // the Material flashlight icon, 32 of 192 dp, centered (flashlight_layout);
-    // the level takes its place while the control shows (stock's slider has
-    // the value in the centre)
+    // the Material Symbols filled flashlight icon, 24 dp, centered
+    // (flashlight_layout: scaleType center, no margin; gm_flashlight_on_24).
+    // Black on the white and on the red light (UiImpl: white_screen_icon and
+    // red_screen_icon are @android:color/black); off, the "flashlight off"
+    // glyph in on-surface-variant (black_screen_icon, #cecdd4 night). The
+    // level takes its place while the control shows (stock's slider has the
+    // value in the centre)
     Icon {
         id: icon
         objectName: "icon"
         anchors.centerIn: parent
-        width: Dims.l(100 / 6)
+        width: Theme.dp(24)
         height: width
-        name: torch.lit ? "gm-flashlight-on" : "gm-flashlight-off"
-        color: torch.screen === "red" ? "#cc0000" : "#bdbdbd"
+        name: torch.lit ? "flashlight-on-fill" : "flashlight-off-fill"
+        color: torch.lit ? "#000000" : Theme.color.onSurfaceVariant
         opacity: control.shown ? 0 : 1
         Behavior on opacity { NumberAnimation { duration: 150 } }
     }

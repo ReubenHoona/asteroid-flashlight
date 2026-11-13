@@ -30,6 +30,15 @@ install(
 	DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
+# the icons: the in-app flashlight glyphs and the launcher icon
+install(
+	FILES
+		icons/flashlight-on-fill.svg
+		icons/flashlight-off-fill.svg
+		icons/asteroid-flashlight.svg
+	DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/asteroid
+)
+
 build_translations(i18n)
 add_subdirectory(src)
 
