@@ -8,7 +8,8 @@
  * off and the user's values back when off; the screen kept on; off after
  * the timeout, when the display goes off; the level by the crown and the
  * + / - buttons, remembered; a mode holding the brightness; the hand-over
- * to a mode that comes on; the values a killed torch left behind.
+ * to a mode that comes on; the values a killed torch left behind; the app
+ * window (src/main.qml) with no time text over the light (D60-47).
  * Screenshots (384x384, round) go to the runner's shots directory as
  * torch-*.png. Run by torch/tools/run-torch-qml.sh (qemu-aarch64,
  * offscreen, software Qt Quick).
@@ -35,6 +36,14 @@ Item {
             active: false
             sourceComponent: Component { Torch { handoverMs: 150 } }
         }
+        // the app window as the launcher opens it (src/main.qml: the
+        // Application around the Torch), for test_17
+        Loader {
+            id: appLoader
+            anchors.fill: parent
+            active: false
+            source: Qt.resolvedUrl("../../src/main.qml")
+        }
         Canvas {
             anchors.fill: parent
             z: 100
@@ -60,6 +69,7 @@ Item {
         readonly property int detent: 120 * 24
 
         function torch() { return loader.item }
+        function appWindow() { return appLoader.item }
         function find(item, name) {
             if (!item)
                 return null
@@ -89,6 +99,9 @@ Item {
             stop()
             Backend.reset()
             start()
+        }
+        function cleanup() {
+            appLoader.active = false
         }
         function nothingSaved() {
             var v = Backend.confGet(savedKey)
@@ -578,6 +591,70 @@ Item {
             verify(on.indexOf("M240,200L240,160Q240,127") >= 0)
             var off = readFile("../../icons/flashlight-off-fill.svg")
             verify(off.indexOf("M320,800L320,432L84,196") >= 0)
+        }
+
+        // D60-47: no time text over the light. CP3A's FlashlightActivity is a
+        // plain Activity, setContentView(flashlight_layout)
+        // (FlashlightActivity.java:12, :43), and flashlight_layout.xml:2-17 is
+        // the light (FrameLayout) and its glyph (ImageView) only: no TimeText.
+        // The app window keeps the time off with the time-text setting on,
+        // and the top of the light, where the time and its band would be, is
+        // white.
+        function findType(item, type) {
+            if (!item)
+                return null
+            if (String(item).indexOf(type) === 0)
+                return item
+            var kids = item.children || []
+            for (var i = 0; i < kids.length; i++) {
+                var r = findType(kids[i], type)
+                if (r)
+                    return r
+            }
+            return null
+        }
+        // pixels not white in the band's place: its middle 33 px, from its
+        // top (or the vignette's first clear row at x 192, y 24 + 2) to
+        // its bottom
+        function notWhiteUnderTime(img, tt) {
+            var n = 0
+            var y0 = Math.ceil(Math.max(tt.edgeMargin, 26))
+            var y1 = Math.floor(tt.edgeMargin + tt.lineHeight) - 1
+            for (var y = y0; y <= y1; y++)
+                for (var x = 176; x <= 208; x++)
+                    if (!near(img.pixel(x, y), "#ffffff", 0.02))
+                        n++
+            return n
+        }
+        function test_17_app_has_no_time_text() {
+            stop()
+            Backend.reset()
+            Backend.confSet("/org/asteroidos/ux/time-text", true)
+            appLoader.active = true
+            tryCompare(appLoader, "status", Loader.Ready)
+            var app = appWindow()
+            var t = findType(app, "Torch")
+            verify(t !== null, "the window holds the Torch")
+            compare(t.screen, "white")
+            tryCompare(t, "controlShown", false, 3000)
+            var tt = findType(app, "TimeText")
+            verify(tt !== null, "the Application has its TimeText")
+            verify(tt.lineHeight > 0)
+            compare(app.showTime, false)
+            compare(tt.visible, false)
+            wait(300)
+            var img = grabImage(screen)
+            compare(notWhiteUnderTime(img, tt), 0)
+            verify(near(img.pixel(192, 30), "#ffffff", 0.02), "top of the light " + img.pixel(192, 30))
+            shot("torch-17-app-no-time-text")
+            // the check sees a time text: forced on, its band and digits
+            // darken that place
+            app.showTime = true
+            wait(300)
+            img = grabImage(screen)
+            var n = notWhiteUnderTime(img, tt)
+            verify(n > 100, "a shown time text darkens the top: " + n)
+            shot("torch-17-app-time-text-forced")
         }
     }
 }

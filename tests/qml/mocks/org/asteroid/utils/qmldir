@@ -1,2 +1,4 @@
 module org.asteroid.utils
 singleton DeviceSpecs 1.0 DeviceSpecs.qml
+WallClock 1.0 WallClock.qml
+singleton DateFormat 1.0 DateFormat.qml

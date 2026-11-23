@@ -18,6 +18,11 @@ Application {
     topIndicVisible: false
     rightIndicVisible: false
     bottomIndicVisible: false
+    // no time text over the light (D60-47): CP3A's FlashlightActivity is a
+    // plain Activity showing flashlight_layout (FlashlightActivity.java:43),
+    // the light and its glyph only (flashlight_layout.xml:2-17), so the
+    // time-text setting does not reach it
+    showTime: false
 
     Torch {
         anchors.fill: parent
