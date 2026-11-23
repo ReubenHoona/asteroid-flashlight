@@ -4,4 +4,5 @@ Categories=Applications;
 Exec=asteroid-flashlight
 Icon=asteroid-flashlight
 X-Asteroid-Center-Color=#FFFFFF
+X-Eos-Own-Icon=true
 X-Asteroid-Outer-Color=#FFFFFF

@@ -523,15 +523,18 @@ Item {
             shot("torch-04b-off-glyph")
         }
 
-        // apps-misc-02: the launcher icon drawn at 3 px per dp: the torch box
-        // (stock: alpha box 117,84 to 206,239 of 324 px, 30 x 52 dp) and its colours
+        // apps-misc-02, D60-26: the launcher icon drawn at 3 px per dp: the torch
+        // box and its colours. The icon is the visible centre 72 dp of the 108 dp
+        // adaptive canvas (what the launcher's circular mask shows; the launcher
+        // fills its disc with it, X-Eos-Own-Icon), so stock's alpha box 117,84 to
+        // 206,239 of 324 px is 63,30 to 152,185 of 216 px: 30 x 52 dp, 0.72 of the disc
         Component {
             id: iconCase
             Image {
                 objectName: "im"
-                width: 324
-                height: 324
-                sourceSize: Qt.size(324, 324)
+                width: 216
+                height: 216
+                sourceSize: Qt.size(216, 216)
                 source: Qt.resolvedUrl("../../icons/asteroid-flashlight.svg")
             }
         }
@@ -544,24 +547,26 @@ Item {
             // ink: neither the white disc nor the transparent corners
             function ink(c) { return c.a > 0.5 && (c.r < 0.93 || c.g < 0.93 || c.b < 0.97) }
             // (the torch lies well inside the disc, whose antialiased edge is no ink)
-            var b = inkBox(gi, 90, 60, 234, 264, ink)
-            compare(b.l, 117)
-            compare(b.r, 206)
-            verify(Math.abs(b.t - 84) <= 1, "top " + b.t)
-            verify(Math.abs(b.b - 239) <= 1, "bottom " + b.b)
-            // the torch is 30 x 52 dp
+            // (a box inside the disc, around the torch: x 36-72, y 26-82 dp)
+            var b = inkBox(gi, 54, 24, 162, 192, ink)
+            compare(b.l, 63)
+            compare(b.r, 152)
+            verify(Math.abs(b.t - 30) <= 1, "top " + b.t)
+            verify(Math.abs(b.b - 185) <= 1, "bottom " + b.b)
+            // the torch is 30 x 52 dp, 0.72 of the 72 dp disc
             compare(Math.round((b.r - b.l + 1) / 3), 30)
             compare(Math.round((b.b - b.t + 1) / 3), 52)
+            fuzzyCompare((b.b - b.t + 1) / 216, 0.72, 0.01)
             // centred across
-            verify(Math.abs((b.l + b.r) / 2 - 161.5) <= 1)
-            // the white background, the circle's corners empty
-            verify(near(gi.pixel(60, 162), "#ffffff", 0.01), "disc")
+            verify(Math.abs((b.l + b.r) / 2 - 107.5) <= 1)
+            // the white disc fills the picture, its corners empty
+            verify(near(gi.pixel(6, 108), "#ffffff", 0.01), "disc")
             verify(!near(gi.pixel(2, 2), "#ffffff", 0.2), "outside the circle is not white: " + gi.pixel(2, 2))
             // the colours: body, switch, highlight, the head lightening downwards
-            verify(near(gi.pixel(162, 215), "#336ef3", 0.02), "body " + gi.pixel(162, 215))
-            verify(near(gi.pixel(162, 174), "#2c3796", 0.02), "switch " + gi.pixel(162, 174))
-            verify(near(gi.pixel(162, 93), "#def0f9", 0.02), "highlight " + gi.pixel(162, 93))
-            var h1 = gi.pixel(162, 100), h2 = gi.pixel(162, 128)
+            verify(near(gi.pixel(108, 161), "#336ef3", 0.02), "body " + gi.pixel(108, 161))
+            verify(near(gi.pixel(108, 120), "#2c3796", 0.02), "switch " + gi.pixel(108, 120))
+            verify(near(gi.pixel(108, 39), "#def0f9", 0.02), "highlight " + gi.pixel(108, 39))
+            var h1 = gi.pixel(108, 46), h2 = gi.pixel(108, 74)
             verify(h1.b > 0.95 && h1.g > 0.68 && h1.r > 0.40 && h1.r < 0.75, "head top " + h1)
             verify(h2.r > h1.r, "the head lightens downwards")
             verify(h2.r <= Qt.color("#add7fe").r + 0.03, "head bottom " + h2)
@@ -579,6 +584,10 @@ Item {
             verify(d.indexOf("Icon=asteroid-flashlight\n") >= 0)
             verify(d.indexOf("X-Asteroid-Center-Color=#FFFFFF\n") >= 0)
             verify(d.indexOf("X-Asteroid-Outer-Color=#FFFFFF\n") >= 0)
+            // D60-26: the launcher draws the icon as it is (CP3A: a white
+            // background layer, a multi-tone blue torch), no tinted glyph
+            verify(d.indexOf("X-Eos-Own-Icon=true\n") >= 0)
+            verify(d.indexOf("X-Eos-Glyph-Color") < 0)
             verify(d.indexOf("FCF7EB") < 0 && d.indexOf("3C3A33") < 0, "the TWD9 colours are gone")
             var c = readFile("../../CMakeLists.txt")
             verify(c.indexOf("icons/flashlight-on-fill.svg") >= 0)
