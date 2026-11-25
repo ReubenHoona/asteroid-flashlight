@@ -2,7 +2,7 @@
 Type=Application
 Categories=Applications;
 Exec=asteroid-flashlight
-Icon=asteroid-flashlight
-X-Asteroid-Center-Color=#FFFFFF
-X-Eos-Own-Icon=true
+Icon=flashlight-on-fill
+X-Asteroid-Center-Color=#DCE2F9
+X-Eos-Glyph-Color=#2A3041
 X-Asteroid-Outer-Color=#FFFFFF

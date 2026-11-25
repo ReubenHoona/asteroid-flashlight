@@ -581,13 +581,13 @@ Item {
         }
         function test_16_desktop_entry_and_install() {
             var d = readFile("../../asteroid-flashlight.desktop.template")
-            verify(d.indexOf("Icon=asteroid-flashlight\n") >= 0)
-            verify(d.indexOf("X-Asteroid-Center-Color=#FFFFFF\n") >= 0)
+            // N61-55: the Wear OS 6 emulator draws a #DCE2F9 disc with a #2A3041 torch (S04-b);
+            // the launcher tints the Material Symbols torch (flashlight-on-fill)
+            verify(d.indexOf("Icon=flashlight-on-fill\n") >= 0)
+            verify(d.indexOf("X-Asteroid-Center-Color=#DCE2F9\n") >= 0)
             verify(d.indexOf("X-Asteroid-Outer-Color=#FFFFFF\n") >= 0)
-            // D60-26: the launcher draws the icon as it is (CP3A: a white
-            // background layer, a multi-tone blue torch), no tinted glyph
-            verify(d.indexOf("X-Eos-Own-Icon=true\n") >= 0)
-            verify(d.indexOf("X-Eos-Glyph-Color") < 0)
+            verify(d.indexOf("X-Eos-Glyph-Color=#2A3041\n") >= 0)
+            verify(d.indexOf("X-Eos-Own-Icon") < 0)
             verify(d.indexOf("FCF7EB") < 0 && d.indexOf("3C3A33") < 0, "the TWD9 colours are gone")
             var c = readFile("../../CMakeLists.txt")
             verify(c.indexOf("icons/flashlight-on-fill.svg") >= 0)
