@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2026 Reuben Horner <reubarb.scons@gmail.com>
+ * Copyright (C) 2026 eos
  * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * The Flashlight as stock Wear OS's on the Pixel Watch 2 (ClockworkFlashlight,
